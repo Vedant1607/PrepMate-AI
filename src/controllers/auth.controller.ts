@@ -1,0 +1,117 @@
+import { userModel } from "../models/user.model.js";
+import bcrypt from "bcryptjs";
+import { type Request, type Response } from "express";
+import jwt from "jsonwebtoken";
+import { env } from "../config/env.js";
+import { type LoginInput, type RegisterInput } from "../validators/auth.validator.js";
+
+const generateToken = (userId: string, username: string) => {
+  return jwt.sign({ id: userId, username }, env.JWT_SECRET, {
+    expiresIn: "7d",
+  });
+};
+
+/**
+ * @name registerUserController
+ * @description Register a new user, expects username, email anad password in the request body
+ * @access Public
+ */
+export const registerUserController = async (
+  req: Request<{}, {}, RegisterInput>,
+  res: Response,
+) => {
+  try {
+    const { username, email, password } = req.body;
+
+    const isUserAlreadyExists = await userModel.findOne({
+      $or: [{ username }, { email }],
+    });
+
+    if (isUserAlreadyExists) {
+      return res.status(400).json({
+        message: "Account already exists with this username or email address",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = await userModel.create({
+      username,
+      email,
+      password: hashedPassword,
+    });
+
+    const token = generateToken(user._id.toString(), user.username);
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: false, // change to true in production
+      sameSite: "strict",
+    });
+
+    return res.status(201).json({
+      message: "User registered successfully",
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      message: "Internal Server Error",
+    });
+  }
+};
+
+/**
+ * @name loginUserController
+ * @description Login a user, expects email anad password in the request body
+ * @access Public
+ */
+export const loginUserController = async (
+  req: Request<{}, {}, LoginInput>,
+  res: Response,
+) => {
+  try {
+    const { email, password } = req.body;
+
+    const user = await userModel.findOne({ email });
+
+    if (!user) {
+      return res.status(400).json({
+        message: "Invalid email or password",
+      });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      return res.status(400).json({
+        message: "Invalid email or password",
+      });
+    }
+
+    const token = generateToken(user._id.toString(), user.username);
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: false, // change in production
+      sameSite: "strict",
+    });
+
+    return res.status(200).json({
+      message: "User logged in successfully",
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      message: "Internal Server Error",
+    });
+  }
+};
