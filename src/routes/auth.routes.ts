@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   loginUserController,
+  logoutUserController,
   registerUserController,
 } from "../controllers/auth.controller.js";
 import { validate } from "../middlewares/validate.middleware.js";
@@ -22,3 +23,11 @@ authRouter.post("/register", validate(registerSchema), registerUserController);
  */
 
 authRouter.post("/login", validate(loginSchema), loginUserController);
+
+/**
+ * @route GET /api/auth/logout
+ * @description clear token from user cookie and add token in the blacklist
+ * @access Public
+ */
+
+authRouter.get("/logout", logoutUserController);

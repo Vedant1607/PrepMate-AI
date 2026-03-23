@@ -3,7 +3,11 @@ import bcrypt from "bcryptjs";
 import { type Request, type Response } from "express";
 import jwt from "jsonwebtoken";
 import { env } from "../config/env.js";
-import { type LoginInput, type RegisterInput } from "../validators/auth.validator.js";
+import {
+  type LoginInput,
+  type RegisterInput,
+} from "../validators/auth.validator.js";
+import { tokenBlacklistModel } from "../models/blacklist.model.js";
 
 const generateToken = (userId: string, username: string) => {
   return jwt.sign({ id: userId, username }, env.JWT_SECRET, {
@@ -112,6 +116,32 @@ export const loginUserController = async (
     console.error(err);
     return res.status(500).json({
       message: "Internal Server Error",
+    });
+  }
+};
+
+export const logoutUserController = async (req: Request, res: Response) => {
+  try {
+    const token = req.cookies?.token;
+
+    if (token) {
+      await tokenBlacklistModel.create({ token });
+    }
+
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: false, // true in production
+      sameSite: "strict",
+    });
+
+    return res.status(200).json({
+      message: "User logged out successfully",
+    });
+  } catch (error) {
+    console.error("Logout error:", error);
+
+    return res.status(500).json({
+      message: "Internal server error",
     });
   }
 };
