@@ -125,23 +125,42 @@ export const logoutUserController = async (req: Request, res: Response) => {
     const token = req.cookies?.token;
 
     if (token) {
-      await tokenBlacklistModel.create({ token });
+      let decoded: { exp: number };
+      try {
+        decoded = jwt.verify(token, env.JWT_SECRET) as { exp: number };
+        console.log("Token decoded successfully, exp:", decoded.exp);
+      } catch (err) {
+        console.warn("JWT verification failed:", err);
+        res.clearCookie("token", {
+          httpOnly: true,
+          secure: false,
+          sameSite: "strict",
+        });
+        return res
+          .status(200)
+          .json({ message: "User logged out successfully" });
+      }
+
+      try {
+        const result = await tokenBlacklistModel.create({
+          token,
+          expiresAt: new Date(decoded.exp * 1000),
+        });
+        console.log("Blacklist entry created:", result);
+      } catch (dbErr) {
+        console.error("DB insert failed:", dbErr);
+      }
     }
 
     res.clearCookie("token", {
       httpOnly: true,
-      secure: false, // true in production
+      secure: false,
       sameSite: "strict",
     });
-
-    return res.status(200).json({
-      message: "User logged out successfully",
-    });
+    
+    return res.status(200).json({ message: "User logged out successfully" });
   } catch (error) {
     console.error("Logout error:", error);
-
-    return res.status(500).json({
-      message: "Internal server error",
-    });
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
