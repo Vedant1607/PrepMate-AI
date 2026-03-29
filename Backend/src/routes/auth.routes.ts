@@ -1,11 +1,13 @@
 import { Router } from "express";
 import {
+  getMeController,
   loginUserController,
   logoutUserController,
   registerUserController,
 } from "../controllers/auth.controller.js";
 import { validate } from "../middlewares/validate.middleware.js";
 import { loginSchema, registerSchema } from "../validators/auth.validator.js";
+import { authUser } from "../middlewares/auth.middleware.js";
 
 export const authRouter = Router();
 
@@ -31,3 +33,10 @@ authRouter.post("/login", validate(loginSchema), loginUserController);
  */
 
 authRouter.get("/logout", logoutUserController);
+
+/**
+ * @route GET /api/auth/get-me
+ * @description get the current logged in user details
+ * @access private
+ */
+authRouter.get("/get-me", authUser, getMeController);

@@ -120,6 +120,11 @@ export const loginUserController = async (
   }
 };
 
+/**
+ * @name logoutUserController
+ * @description clear token from user cookie and add the token in blacklist
+ * @access public
+ */
 export const logoutUserController = async (req: Request, res: Response) => {
   try {
     const token = req.cookies?.token;
@@ -157,10 +162,43 @@ export const logoutUserController = async (req: Request, res: Response) => {
       secure: false,
       sameSite: "strict",
     });
-    
+
     return res.status(200).json({ message: "User logged out successfully" });
   } catch (error) {
     console.error("Logout error:", error);
     return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+/**
+ * @name getMeController
+ * @description get the current logged in user details
+ * @access private
+ */
+export const getMeController = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        message: "Unauthorized",
+      });
+    }
+    const user = await userModel.findById(req.user?.id).select("-password");
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      message: "User details fetched successfully",
+      user,
+    });
+  } catch (err) {
+    console.error("GetMe error:", err);
+
+    return res.status(500).json({
+      message: "Internal server error",
+    });
   }
 };
