@@ -1,8 +1,9 @@
+import type React from "react";
 import { Link, useNavigate } from "react-router";
 
 const Register = () => {
   const navigate = useNavigate();
-  const handleSubmit = (e: any) => {
+  const handleSubmit = (e: React.SubmitEvent) => {
     e.preventDefault();
   };
 
