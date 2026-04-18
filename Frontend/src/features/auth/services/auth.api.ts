@@ -29,7 +29,7 @@ export async function register(data: RegisterInput) {
 
 export async function login(data: LoginInput) {
   try {
-    const response = await api.post(`$/api/auth/login`, data);
+    const response = await api.post(`/api/auth/login`, data);
 
     return response.data;
   } catch (err: any) {
